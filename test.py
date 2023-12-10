@@ -9,4 +9,6 @@ from datetime import date
 today = datetime.date.today()
 test = {"date" : today, "price" : 100}
 df = pd.DataFrame.from_dict(test, 'index', columns=["value"])
-print(df)
+
+df.to_excel("output.xlsx")
+
