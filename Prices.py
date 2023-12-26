@@ -8,8 +8,13 @@ import warnings
 warnings.filterwarnings(action="ignore")
 
 client = EntsoePandasClient(api_key="8541cf44-934e-4596-b999-aff4afbe7dde")
-start = pd.Timestamp('20231226', tz='Europe/Brussels')
-end = pd.Timestamp('20231227', tz='Europe/Brussels')
+
+if pd.Timestamp.today().hour > 14:
+    start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), tz='Europe/Brussels') + pd.DateOffset(days=1)
+    end = start + pd.DateOffset(days=1)
+else:
+    start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), tz='Europe/Brussels')
+    end = start + pd.DateOffset(days=1)
 dict_country_codes = Countries.Country().codes
 
 def get_DAH_price(country_code, start, end):
