@@ -9,8 +9,10 @@ warnings.filterwarnings(action="ignore")
 
 client = EntsoePandasClient(api_key="8541cf44-934e-4596-b999-aff4afbe7dde")
 
+# If the auction for the next day (around noon) is finished then
 if pd.Timestamp.today().hour > 14:
-    start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), tz='Europe/Brussels') + pd.DateOffset(days=1)
+    start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), 
+                         tz='Europe/Brussels') + pd.DateOffset(days=1)
     end = start + pd.DateOffset(days=1)
 else:
     start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), tz='Europe/Brussels')
@@ -40,8 +42,9 @@ selected_countries=selected_countries.merge(df_avgDAH,on="name",how="left")
 
 centroids = [list(selected_countries.geometry[i].centroid.coords)[0] 
              for i in range(len(selected_countries))]
-selected_countries.plot("DAH",cmap="Blues",edgecolor="black")
+selected_countries.plot("DAH",cmap="Reds",edgecolor="black")
 for i in range(len(selected_countries)):
     plt.text(centroids[i][0], centroids[i][1], "%.2f" % selected_countries.DAH[i])
 plt.title("DAH results {}".format(start.strftime("%Y/%m/%d")))
+plt.axis('off')
 plt.show()
