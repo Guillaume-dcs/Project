@@ -36,7 +36,7 @@ class EntsoeData:
         world = geopandas.read_file(geopandas.datasets.get_path("naturalearth_lowres"))
         europe=world[world.continent=="Europe"]
         europe=europe[(europe.name!="Russia") & (europe.name!="Iceland")]
-        # Create a custom polygon
+
         polygon = Polygon([(-25,35), (40,35), (40,75),(-25,75)])
 
         europe=geopandas.clip(europe, polygon) 
@@ -44,23 +44,4 @@ class EntsoeData:
         selected_countries=selected_countries.merge(df_avgDAH,on="name",how="left")
         selected_countries=selected_countries.drop(columns=["pop_est", "continent", "iso_a3", 
                                                             "gdp_md_est"])
-        lat = [list(selected_countries.geometry[i].centroid.coords)[0][0]
-                    for i in range(len(selected_countries))]
-        lon = [list(selected_countries.geometry[i].centroid.coords)[0][1]
-                    for i in range(len(selected_countries))]
-        selected_countries["lat"] = lat
-        selected_countries["lon"] = lon
         self.data = selected_countries
-
-    def plot_data(self):
-
-        self.data.plot("DAH",cmap="Reds",edgecolor="black")
-
-        plt.rcParams["figure.figsize"]=(10,10)
-        plt.rcParams["font.size"]=10
-        for i in range(len(self.data)):
-            plt.text(self.data.lat[i], self.data.lon[i],
-                      "%.2f" % self.data.DAH[i])
-        plt.title("DAH results {}".format(self.start.strftime("%Y/%m/%d")))
-        plt.axis('off')
-        plt.show()
