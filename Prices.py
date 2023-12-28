@@ -7,20 +7,14 @@ from shapely.geometry import Polygon
 import warnings
 warnings.filterwarnings(action="ignore")
 
-class EntsoeData:
+class EntsoePrices:
 
     def __init__(self):
         client = EntsoePandasClient(api_key="8541cf44-934e-4596-b999-aff4afbe7dde")
 
-        # If the auction for the next day (around noon) is finished then
-        if pd.Timestamp.today().hour > 14:
-            self.start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), 
-                                tz='Europe/Brussels') + pd.DateOffset(days=1)
-            self.end = self.start + pd.DateOffset(days=1)
-        else:
-            self.start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), 
-                                      tz='Europe/Brussels')
-            self.end = self.start + pd.DateOffset(days=1)
+        self.start = pd.Timestamp(pd.Timestamp.today().strftime("%Y%m%d"), 
+                                    tz='Europe/Brussels')
+        self.end = self.start + pd.DateOffset(days=1)
         dict_country_codes = Countries.Country().codes
 
         def get_DAH_price(country_code, start, end):
@@ -45,3 +39,5 @@ class EntsoeData:
         selected_countries=selected_countries.drop(columns=["pop_est", "continent", "iso_a3", 
                                                             "gdp_md_est"])
         self.data = selected_countries
+
+a = EntsoePrices()
