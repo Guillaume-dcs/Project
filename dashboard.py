@@ -9,7 +9,7 @@ import dash_table as dt
 entsoe = EntsoeData()
 df = entsoe.get_data()
 day = entsoe.start
-df = df.set_index("name")
+df = df.set_index("name").round(2)
 
 fig = px.choropleth(df, geojson=df.geometry, locations=df.index, color="DAH", 
                     color_continuous_scale="Reds", hover_name=df.DAH)
