@@ -1,5 +1,7 @@
 import pandas as pd
 from Models import Model
+import matplotlib.pyplot as plt
+import random
 
 ng_fleet = {0.63:1631, 0.57:2265, 0.53:3804, 0.48:796, 0.39:561}
 coal_fleet = {0.57:1084, 0.43:1777, 0.38:660}
@@ -55,7 +57,21 @@ df_real_price = pd.DataFrame.from_dict(df_real_price, orient="index")
 df_real_price.columns = ["Actual PW NL"]
 df_expected_price = pd.DataFrame.from_dict(df_expected_price, orient="index")
 df_expected_price.columns = ["Expected PW NL"]
-df = pd.concat([df_expected_price, df_real_price], axis=1)
+df_prices = pd.concat([df_expected_price, df_real_price], axis=1)
+df_prices_peak = df[(df.index.hour >= 8) & (df.index.hour < 20)]
 
+def plot_merit_order(df, df_merit_order, df_prices, date):
+    merit_order = df_merit_order[date]
+    df_merit = pd.DataFrame.from_dict(merit_order, orient="index").reset_index()
+    df_merit.columns = ["Capacity", "Marginal Cost"]
+    df_merit = df_merit.set_index("Marginal Cost").cumsum()
+    load = [df[df.index == date]["load"]] * df_merit.shape[0]
+    plt.plot(list(df_merit["Capacity"]), list(df_merit.index))
+    plt.plot(load, list(df_merit.index))
+    plt.plot(load[0], df_prices[df_prices.index == date]["Expected PW NL"], "bx", label= "Expected PW NL")
+    plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
+    plt.title("Merit-Order {}".format(date.strftime("%Y-%m-%d %H:%M")))
+    plt.legend()
+    plt.show()
 
 print("hello")
