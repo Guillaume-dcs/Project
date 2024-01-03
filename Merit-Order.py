@@ -5,6 +5,10 @@ import random
 
 ng_fleet = {0.63:1631, 0.57:2265, 0.53:3804, 0.48:796, 0.39:561}
 coal_fleet = {0.57:1084, 0.43:1777, 0.38:660}
+fleet = {}
+for ng_eff, coal_eff in zip(ng_fleet, coal_fleet):
+    fleet["NG {}".format(ng_eff)] = ng_fleet[ng_eff]
+    fleet["Coal {}".format(coal_eff)] = coal_fleet[coal_eff]
 df = Model().get_data()
 df_merit_order = {}
 df_real_price = {}
@@ -58,7 +62,7 @@ df_real_price.columns = ["Actual PW NL"]
 df_expected_price = pd.DataFrame.from_dict(df_expected_price, orient="index")
 df_expected_price.columns = ["Expected PW NL"]
 df_prices = pd.concat([df_expected_price, df_real_price], axis=1)
-df_prices_peak = df[(df.index.hour >= 8) & (df.index.hour < 20)]
+df_prices_peak = df_prices[(df_prices.index.hour >= 8) & (df_prices.index.hour < 20)]
 
 def plot_merit_order(df, df_merit_order, df_prices, date):
     merit_order = df_merit_order[date]
@@ -66,11 +70,13 @@ def plot_merit_order(df, df_merit_order, df_prices, date):
     df_merit.columns = ["Capacity", "Marginal Cost"]
     df_merit = df_merit.set_index("Marginal Cost").cumsum()
     load = [df[df.index == date]["load"]] * df_merit.shape[0]
-    plt.plot(list(df_merit["Capacity"]), list(df_merit.index))
-    plt.plot(load, list(df_merit.index))
+    plt.plot(list(df_merit["Capacity"]), list(df_merit.index), label="Supply")
+    plt.plot(load, list(df_merit.index), label="Demand")
     plt.plot(load[0], df_prices[df_prices.index == date]["Expected PW NL"], "bx", label= "Expected PW NL")
     plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
-    plt.title("Merit-Order {}".format(date.strftime("%Y-%m-%d %H:%M")))
+    plt.title("Merit-Order {}".format((date+pd.DateOffset(days=1)).strftime("%Y-%m-%d %H:%M")))
+    plt.xlabel("Capacity")
+    plt.ylabel("Marginal Cost")
     plt.legend()
     plt.show()
 
