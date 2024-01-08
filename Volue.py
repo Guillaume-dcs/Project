@@ -157,5 +157,36 @@ def plot_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, d
 def monthly_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, month, year):
     [plot_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, date) for date in df_prices.index if date.month == month and date.year == year]
 
+from MorningStar import get_ICE_fwd_curve
+pw = get_ICE_fwd_curve()
+
+def expected_merit_order(NL_power_consumption, NL_power_exchanges, NL_power_production, NL_NG_clean_forwards,
+                         NL_Coal_clean_forwards, NG_capacities, Coal_capacities,
+                         df_prices, month, year):
+    monthly_cons = NL_power_consumption.resample("M").mean().round(2)
+    monthly_cons = monthly_cons[(monthly_cons.index.year == year) & (monthly_cons.index.month == month)].values[0]
+    monthly_exch = NL_power_exchanges.resample("M").mean().sum(axis=1).round(2)
+    monthly_exch = monthly_exch[(monthly_exch.index.year == year) & (monthly_exch.index.month == month)].values[0]
+    monthly_prod = NL_power_production.resample("M").mean().round(2)
+    monthly_prod = monthly_prod[(monthly_prod.index.year == year) & (monthly_prod.index.month == month)]
+    monthly_solar = monthly_prod["Solar Production"].values[0]
+    monthly_wind = monthly_prod["Wind Production"].values[0]
+    monthly_nuclear = monthly_prod["Nuclear Production"].values[0]
+    monthly_biomass = monthly_prod["Biomass Production"].values[0]
+    monthly_clean_NG_price = NL_NG_clean_forwards.resample("M").mean().round(2)
+    monthly_clean_NG_price = monthly_clean_NG_price[(monthly_clean_NG_price.index.year == year) & 
+                                                    (monthly_clean_NG_price.index.month == month)].values[0]
+    monthly_clean_coal_price = NL_Coal_clean_forwards.resample("M").mean().round(2)
+    monthly_clean_coal_price = monthly_clean_coal_price[(monthly_clean_coal_price.index.year == year) & 
+                                                    (monthly_clean_coal_price.index.month == month)].values[0]
+    ng_marginal_costs = {eff:round(monthly_clean_NG_price / eff, 2) for eff in NG_capacities.index}
+    coal_marginal_costs = {eff:round(monthly_clean_coal_price / eff, 2) for eff in Coal_capacities.index}
+    ng_marginal_costs = sorted(ng_marginal_costs.items(), key=lambda x: x[1])
+    coal_marginal_costs = sorted(coal_marginal_costs.items(), key=lambda x: x[1])
+    return ng_marginal_costs
+
+print(expected_merit_order(NL_power_consumption, NL_power_exchanges, NL_power_production, NL_NG_clean_forwards,
+                         NL_Coal_clean_forwards, NG_capacities, Coal_capacities,
+                         df_prices, 5, 2025))
 
 print("hello")

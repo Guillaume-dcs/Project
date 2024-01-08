@@ -80,4 +80,3 @@ def plot_merit_order(df, df_merit_order, df_prices, date):
     plt.legend()
     plt.show()
 
-print("hello")
