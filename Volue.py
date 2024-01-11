@@ -15,14 +15,14 @@ NL_borders = {"be" : "Belgium", "de" : "Germany", "dk1" : "Denmark DK1", "no2" :
 NL_power_exchanges = pd.DataFrame()
 for country in list(NL_borders.keys()):
     country_curve = session.get_curve(name="exc {}>nl com fwd mw cet h f".format(country))
-    NL_power_exchanges[NL_borders[country]] = country_curve.get_latest(frequency="M", function="AVERAGE").to_pandas().to_frame() / 1000
+    NL_power_exchanges[NL_borders[country]] = country_curve.get_latest(frequency="D", function="AVERAGE").to_pandas().to_frame() / 1000
 NL_power_exchanges = NL_power_exchanges.round(2)
 
 NL_power_production = pd.DataFrame()
 NL_power_consumption = pd.DataFrame()
 for item in list(tickers.keys()):
     item_curve = session.get_curve(name=tickers[item])
-    item_ts = item_curve.get_latest(frequency="M", function="AVERAGE")
+    item_ts = item_curve.get_latest(frequency="D", function="AVERAGE")
     if "Production" in item:
         NL_power_production[item] = item_ts.to_pandas().to_frame() / 1000
     else:
@@ -30,11 +30,11 @@ for item in list(tickers.keys()):
 NL_power_production = NL_power_production.round(2)
 NL_power_consumption = NL_power_consumption.round(2)
 
-NL_PW_forwards = session.get_curve(27136).get_latest(frequency="M", function="AVERAGE").to_pandas().to_frame()
+NL_PW_forwards = session.get_curve(27136).get_latest(frequency="D", function="AVERAGE").to_pandas().to_frame()
 NL_PW_forwards.columns = ["PW NL Forwards"]
-NL_NG_forwards = session.get_curve(27089).get_latest(frequency="M", function="AVERAGE").to_pandas().to_frame() * 3.6
-NL_Coal_forwards = session.get_curve(27102).get_latest(frequency="M", function="AVERAGE").to_pandas().to_frame() * 3.6
-NL_EUA_forwards = session.get_curve(27111).get_latest(frequency="M", function="AVERAGE").to_pandas().to_frame() * 1000
+NL_NG_forwards = session.get_curve(27089).get_latest(frequency="D", function="AVERAGE").to_pandas().to_frame() * 3.6
+NL_Coal_forwards = session.get_curve(27102).get_latest(frequency="D", function="AVERAGE").to_pandas().to_frame() * 3.6
+NL_EUA_forwards = session.get_curve(27111).get_latest(frequency="D", function="AVERAGE").to_pandas().to_frame() * 1000
 
 NL_NG_clean_forwards = pd.concat([NL_NG_forwards, 0.185 * NL_EUA_forwards], axis=1).sum(axis=1)
 NL_NG_clean_forwards.columns = ["Clean NG Forwards"]
@@ -77,9 +77,9 @@ df_real_price = {}
 df_expected_price = {}
 
 for i in range(efficiencies.shape[0]):
-    load_forecast = round(float(NL_power_consumption.iloc[i]), 2)
+    load_forecast = round(float(NL_power_consumption.iloc[i]), 2) 
     wind_forecast = round(float(NL_power_production["Wind Production"].iloc[i]), 2)
-    solar_forecast = round(float(NL_power_production["Solar Production"].iloc[i]), 2)
+    solar_forecast = round(float(NL_power_production["Solar Production"].iloc[i]), 2) * 1.25 #TenneT does not measure small scale SPV. 
     nuclear_forecast = round(float(NL_power_production["Nuclear Production"].iloc[i]), 2)
     biomass_forecast = round(float(NL_power_production["Biomass Production"].iloc[i]), 2)
     exchanges_forecast = round(float(NL_power_exchanges.iloc[i].sum()), 2)
@@ -98,24 +98,25 @@ for i in range(efficiencies.shape[0]):
             cheapest_ng = ng_marginal_costs[count_ng]
             cheapest_coal = coal_marginal_costs[count_coal]
             if cheapest_ng[1] <= cheapest_coal[1]:
-                merit_order[(count_ng, round(float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values), 2))] = cheapest_ng[1]
+                merit_order[("NG_{}".format(count_ng), round(float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values), 2))] = cheapest_ng[1]
                 residual_load = residual_load - float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values)
                 count_ng +=1
             else:
-                merit_order[(count_coal, round(float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values), 2))] = cheapest_coal[1]
+                merit_order[("Coal_{}".format(count_coal), round(float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values), 2))] = cheapest_coal[1]
                 residual_load = residual_load - float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values)
                 count_coal +=1
         elif count_ng >= len(ng_marginal_costs) and count_coal < len(coal_marginal_costs):
             cheapest_coal = coal_marginal_costs[count_coal]
-            merit_order[(count_coal, round(float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values), 2))] = cheapest_coal[1]
+            merit_order[("Coal_{}".format(count_coal), round(float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values), 2))] = cheapest_coal[1]
             residual_load = residual_load - float(Coal_capacities[Coal_capacities.index == cheapest_coal[0]].values)
             count_coal +=1
         elif count_ng < len(ng_marginal_costs) and count_coal >= len(coal_marginal_costs):
             cheapest_ng = ng_marginal_costs[count_ng]
-            merit_order[(count_ng, round(float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values), 2))] = cheapest_ng[1]
+            merit_order[("NG_{}".format(count_ng), round(float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values), 2))] = cheapest_ng[1]
             residual_load = residual_load - float(NG_capacities[NG_capacities.index == cheapest_ng[0]].values)
             count_ng +=1
         elif count_ng >= len(ng_marginal_costs) and count_coal >= len(coal_marginal_costs):
+            merit_order[(count_ng, round(residual_load, 2))] = list(merit_order.values())[-1]
             residual_load = 0
 
     df_merit_order[efficiencies.iloc[i].name] = merit_order
@@ -126,10 +127,11 @@ df_real_price = pd.DataFrame.from_dict(df_real_price, orient="index")
 df_real_price.columns = ["Actual PW NL"]
 df_expected_price = pd.DataFrame.from_dict(df_expected_price, orient="index")
 df_expected_price.columns = ["Expected PW NL"]
-df_prices = pd.concat([df_expected_price, df_real_price], axis=1)
+df_prices = pd.concat([df_expected_price, df_real_price], axis=1).round(2)
 
-def plot_merit_order(NL_power_consumption, df_merit_order, df_prices, date):
+def plot_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, date):
     merit_order = df_merit_order[date]
+    exchanges_forecast = round(NL_power_exchanges[NL_power_exchanges.index == date].sum(axis=1).values[0], 2)
     df_merit = pd.DataFrame.from_dict(merit_order, orient="index")
     new_index = []
     for item in df_merit.index:
@@ -141,15 +143,48 @@ def plot_merit_order(NL_power_consumption, df_merit_order, df_prices, date):
     df_merit = df_merit.reset_index()
     df_merit.columns = ["Capacity", "Marginal Cost"]
     df_merit = df_merit.set_index("Marginal Cost").cumsum()
-    load = [NL_power_consumption[NL_power_consumption.index == date]["load"]] * df_merit.shape[0]
+    load = [NL_power_consumption[NL_power_consumption.index == date].values[0][0] - exchanges_forecast] * df_merit.shape[0]
     plt.plot(list(df_merit["Capacity"]), list(df_merit.index), label="Supply")
     plt.plot(load, list(df_merit.index), label="Demand")
     plt.plot(load[0], df_prices[df_prices.index == date]["Expected PW NL"], "bx", label= "Expected PW NL")
-    plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
-    plt.title("Merit-Order {}".format((date+pd.DateOffset(days=1)).strftime("%Y-%m-%d %H:%M")))
+    # plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
+    plt.title("Merit-Order {}".format(date.strftime("%Y-%m")))
     plt.xlabel("Capacity")
     plt.ylabel("Marginal Cost")
-    plt.legend()
+    # plt.legend()
     plt.show()
+
+def monthly_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, month, year):
+    [plot_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, date) for date in df_prices.index if date.month == month and date.year == year]
+
+from MorningStar import get_ICE_fwd_curve
+pw = get_ICE_fwd_curve()
+
+def expected_merit_order(NL_power_consumption, NL_power_exchanges, NL_power_production, NL_NG_clean_forwards,
+                         NL_Coal_clean_forwards, NG_capacities, Coal_capacities,
+                         df_prices, month, year):
+    monthly_cons = NL_power_consumption.resample("M").mean().round(2)
+    monthly_cons = monthly_cons[(monthly_cons.index.year == year) & (monthly_cons.index.month == month)].values[0]
+    monthly_exch = NL_power_exchanges.resample("M").mean().sum(axis=1).round(2)
+    monthly_exch = monthly_exch[(monthly_exch.index.year == year) & (monthly_exch.index.month == month)].values[0]
+    monthly_prod = NL_power_production.resample("M").mean().round(2)
+    monthly_prod = monthly_prod[(monthly_prod.index.year == year) & (monthly_prod.index.month == month)]
+    monthly_solar = monthly_prod["Solar Production"].values[0]
+    monthly_wind = monthly_prod["Wind Production"].values[0]
+    monthly_nuclear = monthly_prod["Nuclear Production"].values[0]
+    monthly_biomass = monthly_prod["Biomass Production"].values[0]
+    monthly_clean_NG_price = NL_NG_clean_forwards.resample("M").mean().round(2)
+    monthly_clean_NG_price = monthly_clean_NG_price[(monthly_clean_NG_price.index.year == year) & 
+                                                    (monthly_clean_NG_price.index.month == month)].values[0]
+    monthly_clean_coal_price = NL_Coal_clean_forwards.resample("M").mean().round(2)
+    monthly_clean_coal_price = monthly_clean_coal_price[(monthly_clean_coal_price.index.year == year) & 
+                                                    (monthly_clean_coal_price.index.month == month)].values[0]
+    ng_marginal_costs = {NG_capacities[eff]:round(monthly_clean_NG_price / eff, 2) for eff in NG_capacities.index}
+    coal_marginal_costs = {Coal_capacities[eff]:round(monthly_clean_coal_price / eff, 2) for eff in Coal_capacities.index}
+    ng_marginal_costs = sorted(ng_marginal_costs.items(), key=lambda x: x[1])
+    coal_marginal_costs = sorted(coal_marginal_costs.items(), key=lambda x: x[1])
+    
+
+
 
 print("hello")
