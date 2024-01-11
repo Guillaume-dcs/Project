@@ -147,11 +147,11 @@ def plot_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, d
     plt.plot(list(df_merit["Capacity"]), list(df_merit.index), label="Supply")
     plt.plot(load, list(df_merit.index), label="Demand")
     plt.plot(load[0], df_prices[df_prices.index == date]["Expected PW NL"], "bx", label= "Expected PW NL")
-    plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
+    # plt.plot(load[0], df_prices[df_prices.index == date]["Actual PW NL"], "rx", label = "Actual PW NL")
     plt.title("Merit-Order {}".format(date.strftime("%Y-%m")))
     plt.xlabel("Capacity")
     plt.ylabel("Marginal Cost")
-    plt.legend()
+    # plt.legend()
     plt.show()
 
 def monthly_merit_order(NL_power_consumption, NL_power_exchanges, df_merit_order, df_prices, month, year):
@@ -179,14 +179,12 @@ def expected_merit_order(NL_power_consumption, NL_power_exchanges, NL_power_prod
     monthly_clean_coal_price = NL_Coal_clean_forwards.resample("M").mean().round(2)
     monthly_clean_coal_price = monthly_clean_coal_price[(monthly_clean_coal_price.index.year == year) & 
                                                     (monthly_clean_coal_price.index.month == month)].values[0]
-    ng_marginal_costs = {eff:round(monthly_clean_NG_price / eff, 2) for eff in NG_capacities.index}
-    coal_marginal_costs = {eff:round(monthly_clean_coal_price / eff, 2) for eff in Coal_capacities.index}
+    ng_marginal_costs = {NG_capacities[eff]:round(monthly_clean_NG_price / eff, 2) for eff in NG_capacities.index}
+    coal_marginal_costs = {Coal_capacities[eff]:round(monthly_clean_coal_price / eff, 2) for eff in Coal_capacities.index}
     ng_marginal_costs = sorted(ng_marginal_costs.items(), key=lambda x: x[1])
     coal_marginal_costs = sorted(coal_marginal_costs.items(), key=lambda x: x[1])
-    return ng_marginal_costs
+    
 
-print(expected_merit_order(NL_power_consumption, NL_power_exchanges, NL_power_production, NL_NG_clean_forwards,
-                         NL_Coal_clean_forwards, NG_capacities, Coal_capacities,
-                         df_prices, 5, 2025))
+
 
 print("hello")
